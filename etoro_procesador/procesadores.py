@@ -118,7 +118,7 @@ class Generador(object):
     def procesar_datos_dividendos(self, datos):
         df = pd.DataFrame(datos)
 
-        df['Fecha2'] = pd.to_datetime(df['Fecha'], format="%d/%m/%Y %H:%M:%S")
+        df['Fecha2'] = pd.to_datetime(df['Fecha'], format="%d/%m/%Y")
 
         df['anio'] = pd.DatetimeIndex(df['Fecha2']).year
         df['mes'] = pd.DatetimeIndex(df['Fecha2']).month
