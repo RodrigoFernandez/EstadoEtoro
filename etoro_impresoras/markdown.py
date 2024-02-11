@@ -77,7 +77,7 @@ class ImpresoraMarkdown(Impresora):
         partes.append(self.get_cita(self.get_alineaciones_columnas(alineaciones), nivel=2))
 
         for detalle in detalles:
-            fila = [str(detalle.fecha), detalle.descripcion, "{:.2f}".format(
+            fila = [str(detalle.fecha), detalle.descripcion if detalle.descripcion else "", "{:.2f}".format(
                 detalle.monto), detalle.unidades]
             partes.append(self.get_cita(self.get_fila_tabla(fila), nivel=2))
 

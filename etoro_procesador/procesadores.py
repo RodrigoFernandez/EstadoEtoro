@@ -5,6 +5,7 @@ from openpyxl import load_workbook
 import pandas as pd
 from etoro_modelos.modelos import Deposito, DetalleTenencia, Tenencia
 from etoro_modelos.modelos import DividendoMensual, Etoro
+from .constantes import Columnas
 
 
 class Generador(object):
@@ -25,28 +26,29 @@ class Generador(object):
 
     def procesar_fila(self, fila):
         rta = {
-            "Fecha": fila[0].value,
-            "Tipo": fila[1].value,
-            "Detalles": fila[2].value,
-            "Importe": fila[3].value,
-            "Unidades": "" if fila[4].value == '-' else fila[4].value,
-            "ID de posicion": fila[8].value if fila[8].value is not None else "",
+            Columnas.FECHA: fila[0].value,
+            Columnas.TIPO: fila[1].value,
+            Columnas.DETALLES: fila[2].value,
+            Columnas.IMPORTE: fila[3].value,
+            Columnas.UNIDADES: "" if fila[4].value == Columnas.DEPOSITO else fila[4].value,
+            Columnas.ID_DE_POSICION: fila[8].value if fila[8].value is not None else "",
         }
 
         return rta
 
     def procesar_datos(self, datos):
         df = pd.DataFrame(datos)
-        df.set_index('Fecha', inplace=True)
-        agrupados = df.groupby('ID de posicion')
+        df.set_index(Columnas.FECHA, inplace=True)
+        print(df)
+        agrupados = df.groupby(Columnas.ID_DE_POSICION)
 
-        depositos = self.convert_2_depositos(agrupados.get_group(''))
+        depositos = self.convert_2_depositos(agrupados.get_group(Columnas.DEPOSITO))
         tenencias = self.convert_2_tenencias(agrupados)
 
         return depositos, tenencias
 
     def convert_2_depositos(self, depos):
-        rta = [Deposito(dep['Importe'], dep['Detalles'], indice_fila_fecha)
+        rta = [Deposito(dep[Columnas.IMPORTE], dep[Columnas.DETALLES], indice_fila_fecha)
                for indice_fila_fecha, dep in depos.iterrows()]
         return rta
 
@@ -59,7 +61,7 @@ class Generador(object):
     def convert_2_tenencias(self, tenencias):
         rta = []
         for clave in tenencias.groups.keys():
-            if clave != '':
+            if clave not in ['', Columnas.DEPOSITO]:
                 una_tenencia = tenencias.get_group(clave)
                 es_primer_movimiento = True
                 ticket = ""
@@ -67,9 +69,9 @@ class Generador(object):
                 for indice_fecha, t in una_tenencia.iterrows():
                     if es_primer_movimiento:
                         es_primer_movimiento = False
-                        ticket = self.get_ticket(t['Detalles'])
+                        ticket = self.get_ticket(t[Columnas.DETALLES])
                     detalles.append(DetalleTenencia(
-                        t['Importe'], indice_fecha, t['Detalles'], t['Unidades']))
+                        t[Columnas.IMPORTE], indice_fecha, t[Columnas.DETALLES], t[Columnas.UNIDADES]))
                 rta.append(Tenencia(clave, ticket, detalles))
 
         a = sorted(rta, key=lambda t: t.ticket)
@@ -90,16 +92,17 @@ class Generador(object):
         rta = []
 
         for index, fila in sumatorias.iterrows():
-            rta.append(DividendoMensual(fila['anio'], fila['mes'], fila['Importe']))
+            rta.append(DividendoMensual(fila[Columnas.ANIO],
+                       fila[Columnas.MES], fila[Columnas.IMPORTE]))
 
         return rta
 
     def procesar_fila_div(self, fila):
         rta = {
-            "Fecha": fila[0].value,
-            "Detalles": fila[1].value,
-            "Importe": fila[2].value,
-            "ID de posicion": fila[5].value,
+            Columnas.FECHA: fila[0].value,
+            Columnas.DETALLES: fila[1].value,
+            Columnas.IMPORTE: fila[2].value,
+            Columnas.ID_DE_POSICION: fila[5].value,
         }
 
         return rta
@@ -118,13 +121,14 @@ class Generador(object):
     def procesar_datos_dividendos(self, datos):
         df = pd.DataFrame(datos)
 
-        df['Fecha2'] = pd.to_datetime(df['Fecha'], format="%d/%m/%Y")
+        df[Columnas.FECHA2] = pd.to_datetime(df[Columnas.FECHA], format="%d/%m/%Y")
 
-        df['anio'] = pd.DatetimeIndex(df['Fecha2']).year
-        df['mes'] = pd.DatetimeIndex(df['Fecha2']).month
+        df[Columnas.ANIO] = pd.DatetimeIndex(df[Columnas.FECHA2]).year
+        df[Columnas.MES] = pd.DatetimeIndex(df[Columnas.FECHA2]).month
 
-        sumatorias = df.groupby(['anio', 'mes']).agg({'Importe': 'sum'}).reset_index()
-        sumatorias.sort_values(by=['anio', 'mes'], inplace=True, ascending=False)
+        sumatorias = df.groupby([Columnas.ANIO, Columnas.MES]).agg(
+            {Columnas.IMPORTE: 'sum'}).reset_index()
+        sumatorias.sort_values(by=[Columnas.ANIO, Columnas.MES], inplace=True, ascending=False)
         rta = self.convert_2_dividendos_mensuales(sumatorias)
         return rta
 
