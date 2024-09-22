@@ -6,32 +6,29 @@ import pandas as pd
 from etoro_modelos.modelos import Deposito, DetalleTenencia, Tenencia
 from etoro_modelos.modelos import DividendoMensual, Etoro
 from .constantes import Columnas
+from .constantes import ColumnasReporteEtoro as ColRepE
 
 
 class Generador(object):
     def __init__(self, ruta):
         self.ruta = ruta
-    """
-    Fecha -> 0
-    Tipo -> 1
-    Detalles -> 2
-    Importe -> 3
-    Unidades > 4
-    Cambio de capital realizado -> 5
-    Capital realizado -> 6
-    Saldo -> 7
-    ID de posición -> 8
-    Importe no retirable -> 9
-    """
 
     def procesar_fila(self, fila):
+        unidades = fila[ColRepE.UNIDADES.value].value
+        if fila[ColRepE.UNIDADES.value].value == Columnas.DEPOSITO:
+            unidades = ""
+
+        id_de_poscion = ""
+        if fila[ColRepE.ID_POSICION.value].value is not None:
+            id_de_poscion = fila[ColRepE.ID_POSICION.value].value
+
         rta = {
-            Columnas.FECHA: fila[0].value,
-            Columnas.TIPO: fila[1].value,
-            Columnas.DETALLES: fila[2].value,
-            Columnas.IMPORTE: fila[3].value,
-            Columnas.UNIDADES: "" if fila[4].value == Columnas.DEPOSITO else fila[4].value,
-            Columnas.ID_DE_POSICION: fila[8].value if fila[8].value is not None else "",
+            Columnas.FECHA: fila[ColRepE.FECHA.value].value,
+            Columnas.TIPO: fila[ColRepE.TIPO.value].value,
+            Columnas.DETALLES: fila[ColRepE.DETALLES.value].value,
+            Columnas.IMPORTE: fila[ColRepE.IMPORTE.value].value,
+            Columnas.UNIDADES: unidades,
+            Columnas.ID_DE_POSICION: id_de_poscion,
         }
 
         return rta
@@ -39,7 +36,6 @@ class Generador(object):
     def procesar_datos(self, datos):
         df = pd.DataFrame(datos)
         df.set_index(Columnas.FECHA, inplace=True)
-        print(df)
         agrupados = df.groupby(Columnas.ID_DE_POSICION)
 
         depositos = self.convert_2_depositos(agrupados.get_group(Columnas.DEPOSITO))
@@ -48,7 +44,9 @@ class Generador(object):
         return depositos, tenencias
 
     def convert_2_depositos(self, depos):
-        rta = [Deposito(dep[Columnas.IMPORTE], dep[Columnas.DETALLES], indice_fila_fecha)
+        rta = [Deposito(dep[Columnas.IMPORTE],
+                        dep[Columnas.DETALLES],
+                        indice_fila_fecha)
                for indice_fila_fecha, dep in depos.iterrows()]
         return rta
 
@@ -71,7 +69,10 @@ class Generador(object):
                         es_primer_movimiento = False
                         ticket = self.get_ticket(t[Columnas.DETALLES])
                     detalles.append(DetalleTenencia(
-                        t[Columnas.IMPORTE], indice_fecha, t[Columnas.DETALLES], t[Columnas.UNIDADES]))
+                        t[Columnas.IMPORTE],
+                        indice_fecha,
+                        t[Columnas.DETALLES],
+                        t[Columnas.UNIDADES]))
                 rta.append(Tenencia(clave, ticket, detalles))
 
         a = sorted(rta, key=lambda t: t.ticket)
@@ -121,14 +122,17 @@ class Generador(object):
     def procesar_datos_dividendos(self, datos):
         df = pd.DataFrame(datos)
 
-        df[Columnas.FECHA2] = pd.to_datetime(df[Columnas.FECHA], format="%d/%m/%Y")
+        df[Columnas.FECHA2] = pd.to_datetime(df[Columnas.FECHA],
+                                             format="%d/%m/%Y")
 
         df[Columnas.ANIO] = pd.DatetimeIndex(df[Columnas.FECHA2]).year
         df[Columnas.MES] = pd.DatetimeIndex(df[Columnas.FECHA2]).month
 
         sumatorias = df.groupby([Columnas.ANIO, Columnas.MES]).agg(
             {Columnas.IMPORTE: 'sum'}).reset_index()
-        sumatorias.sort_values(by=[Columnas.ANIO, Columnas.MES], inplace=True, ascending=False)
+        sumatorias.sort_values(by=[Columnas.ANIO, Columnas.MES],
+                               inplace=True,
+                               ascending=False)
         rta = self.convert_2_dividendos_mensuales(sumatorias)
         return rta
 
