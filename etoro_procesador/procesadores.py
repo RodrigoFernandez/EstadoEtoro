@@ -136,6 +136,32 @@ class Generador(object):
         rta = self.convert_2_dividendos_mensuales(sumatorias)
         return rta
 
+    def procesar_fila_cerrada(self, fila):
+        rta = {
+            Columnas.ID_DE_POSICION: fila[0].value,
+        }
+
+        return rta
+
+    def preprocesar_cerradas(self, hoja):
+        es_titulo = True
+        pre_procesadas = []
+
+        for fila in hoja.rows:
+            if es_titulo:
+                es_titulo = False
+            else:
+                pre_procesadas.append(self.procesar_fila_cerrada(fila))
+        return pre_procesadas
+
+    def procesar_cerradas(self, datos):
+        aux = []
+        for cierre in datos:
+            aux.append(cierre[Columnas.ID_DE_POSICION])
+
+        aux = set(aux)
+        return aux
+
     def leer_excel(self):
         planilla = load_workbook(self.ruta)
         hoja_actividades = planilla[planilla.sheetnames[2]]
@@ -148,9 +174,13 @@ class Generador(object):
         pre_procesadas_div = self.preprocesar_dividendos(hoja_dividendos)
         dividendos = self.procesar_datos_dividendos(pre_procesadas_div)
 
-        return depositos, posiciones, dividendos
+        hoja_cerradas = planilla[planilla.sheetnames[1]]
+        pre_procesadas_cerradas = self.preprocesar_cerradas(hoja_cerradas)
+        cerradas = self.procesar_cerradas(pre_procesadas_cerradas)
+
+        return depositos, posiciones, dividendos, cerradas
 
     def generar_etoro(self):
-        depositos, posiciones, dividendos = self.leer_excel()
-        rta = Etoro(depositos, posiciones, dividendos)
+        depositos, posiciones, dividendos, cerradas = self.leer_excel()
+        rta = Etoro(depositos, posiciones, dividendos, cerradas)
         return rta

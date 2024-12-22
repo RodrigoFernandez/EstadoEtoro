@@ -89,7 +89,7 @@ class ImpresoraMarkdown(Impresora):
         partes.append("\n")
 
         for posicion in self.etoro.posiciones:
-            titulo_posicion = f"{posicion.ticket} ({str(posicion.id)})"
+            titulo_posicion = f"{posicion.ticket} ({str(posicion.id)}) - {'CERRADA' if posicion.id in self.etoro.cerradas else 'ABIERTA'}"
             partes.append(self.get_cita(self.get_titulo(titulo_posicion, nivel=3)))
             partes.append("\n")
             partes.append(self.get_detalles_posiciones(posicion.detalles))
