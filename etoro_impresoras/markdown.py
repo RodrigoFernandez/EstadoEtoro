@@ -68,18 +68,18 @@ class ImpresoraMarkdown(Impresora):
         partes.append("\n")
         return "\n".join(partes)
 
-    def get_detalles_posiciones(self, detalles):
+    def get_detalles_posiciones(self, detalles, nivel=2):
         partes = []
         titulos = ['Fecha', 'Descripcion', 'Monto', 'Unidades']
-        partes.append(self.get_cita(self.get_cabecera_tabla(titulos), nivel=2))
+        partes.append(self.get_cita(self.get_cabecera_tabla(titulos), nivel=nivel))
 
         alineaciones = [ColAling.IZQ, ColAling.IZQ, ColAling.DER, ColAling.DER]
-        partes.append(self.get_cita(self.get_alineaciones_columnas(alineaciones), nivel=2))
+        partes.append(self.get_cita(self.get_alineaciones_columnas(alineaciones), nivel=nivel))
 
         for detalle in detalles:
             fila = [str(detalle.fecha), detalle.descripcion if detalle.descripcion else "", "{:.2f}".format(
                 detalle.monto), detalle.unidades]
-            partes.append(self.get_cita(self.get_fila_tabla(fila), nivel=2))
+            partes.append(self.get_cita(self.get_fila_tabla(fila), nivel=nivel))
 
         return "\n".join(partes)
 
@@ -94,6 +94,16 @@ class ImpresoraMarkdown(Impresora):
             partes.append("\n")
             partes.append(self.get_detalles_posiciones(posicion.detalles))
             partes.append("\n")
+
+        partes.append("\n")
+        return "\n".join(partes)
+
+    def get_comisiones(self):
+        partes = []
+        partes.append(self.get_titulo("Comisiones", nivel=2, estilo='.encabezado_2'))
+        partes.append("\n")
+
+        partes.append(self.get_detalles_posiciones(self.etoro.comisiones, nivel=1))
 
         partes.append("\n")
         return "\n".join(partes)
@@ -125,6 +135,8 @@ class ImpresoraMarkdown(Impresora):
         partes.append(self.get_depositos())
         partes.append(self.get_separador(cantidad=2))
         partes.append(self.get_posciones())
+        partes.append(self.get_separador(cantidad=2))
+        partes.append(self.get_comisiones())
         partes.append(self.get_separador(cantidad=2))
         partes.append(self.get_dividendos_mensuales())
 

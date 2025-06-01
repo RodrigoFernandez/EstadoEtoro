@@ -152,11 +152,12 @@ class DividendoMensual(object):
 
 
 class Etoro(object):
-    def __init__(self, depositos, posiciones, dividendos, cerradas):
+    def __init__(self, depositos, posiciones, dividendos, cerradas, comisiones):
         self.__depositos = depositos
         self.__posiciones = posiciones
         self.__dividendos = dividendos
         self.__cerradas = cerradas
+        self.__comisiones = comisiones
 
     @property
     def depositos(self):
@@ -189,3 +190,11 @@ class Etoro(object):
     @cerradas.setter
     def cerradas(self, cerradas):
         self.__cerradas = cerradas
+
+    @property
+    def comisiones(self):
+        return self.__comisiones
+
+    @comisiones.setter
+    def comisiones(self, comisiones):
+        self.__comisiones = comisiones
